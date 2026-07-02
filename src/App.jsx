@@ -76,7 +76,8 @@ function generateAbsorption(Eg, direct, Eb, nMax, excitonType, T) {
   // 🔥 stronger temperature dependence (make effect clearly visible)
   // 🔥 fix: much stronger broadening at high T (phonon dominated)
   const TT = clampT(T);
-  const sigma = 0.0002 + 0.000002 * TT * TT; // quadratic in T // eV
+  // 🔥 more physical linewidth: linear + phonon contribution
+  const sigma = 0.00015 + 0.0000015 * TT + 0.0000008 * TT * TT; // quadratic in T // eV
   const sigmaF = 8 * sigma; // Frenkel broader
 
   for (let E = 0; E <= 3; E += 0.005) {
@@ -99,24 +100,36 @@ function generateAbsorption(Eg, direct, Eb, nMax, excitonType, T) {
 
     // 🔥 Physically correct absorption: step at Eg + JDOS (no thermal suppression)
     let bandEdge = 0;
-    if (direct) bandEdge = E > Eg ? Math.sqrt(E - Eg) : 0;
-    else bandEdge = E > Eg ? Math.pow(E - Eg, 2) * 0.3 : 0;
+    if (direct) {
+      // direct: sharp onset
+      bandEdge = E > Eg ? Math.sqrt(E - Eg) : 0;
+    } else {
+      // 🔥 improved indirect: phonon-assisted shifted onset
+      const Eph = 0.035; // ~35 meV phonon
+      if (E > Eg + Eph) {
+        bandEdge = 0.3 * Math.pow(E - Eg - Eph, 2);
+      }
+    }
 
     // 🔥 spectral weight transfer (exciton borrows oscillator strength)
     const Sw = Math.min(0.9, Eb / (Eb + 0.05)) * safeExp(-T / 400);
 
     // 🔥 PHYSICALLY CONSISTENT Saha model (scaled)
     // use dimensionless version to avoid unphysical T^3 blow-up
-    const saha = safeExp(-Eb / (kB * clampT(T)));
+    // 🔥 improved Saha (include phase-space factor ~ T^(3/2))
+    const saha = Math.pow(clampT(T), 1.5) * safeExp(-Eb / (kB * clampT(T)));
     const f_bound = 1 / (1 + saha);
     const merge = f_bound;
 
     // exciton loses weight and broadens into continuum
     // 🔥 Correct spectral weight conservation (no double counting)
-    const excitonWeight = Sw * merge;
+    // 🔥 oscillator strength redistribution (conserving total weight)
+    const excitonWeight = merge;
     const continuumWeight = 1 - excitonWeight;
 
-    alpha = excitonWeight * excitonSum + continuumWeight * bandEdge;
+    // ✅ PHYSICALLY CORRECT: continuum always present + excitonic enhancement
+    // no artificial mixing → exciton sits on top of band edge
+    alpha = bandEdge + excitonWeight * excitonSum;
 
     data.push({ E: Number(E.toFixed(3)), alpha });
   }
@@ -131,7 +144,8 @@ function generatePL(Eg, direct, Eb, nMax, excitonType, T) {
   // 🔥 stronger temperature dependence (make effect clearly visible)
   // 🔥 fix: much stronger broadening at high T (phonon dominated)
   const TT = clampT(T);
-  const sigma = 0.0002 + 0.000002 * TT * TT; // quadratic in T
+  // 🔥 more physical linewidth: linear + phonon contribution
+  const sigma = 0.00015 + 0.0000015 * TT + 0.0000008 * TT * TT; // quadratic in T
   const sigmaF = 8 * sigma;
 
   for (let E = 0; E <= 3; E += 0.005) {
@@ -141,7 +155,8 @@ function generatePL(Eg, direct, Eb, nMax, excitonType, T) {
       const Ex1 = Eg - Eb;
       const Sw = Math.min(0.9, Eb / (Eb + 0.05)) * safeExp(-T / 400);
       // 🔥 use Lorentzian (consistent with absorption)
-      const excitonPL = (1.2 + Sw) * (sigma / Math.PI) / ((E - Ex1)*(E - Ex1) + sigma*sigma);
+      // 🔥 remove artificial boost → physical oscillator strength
+      const excitonPL = (1.0) * (sigma / Math.PI) / ((E - Ex1)*(E - Ex1) + sigma*sigma);
 
       let rydberg = 0;
       for (let n = 2; n <= nMax; n++) {
@@ -152,27 +167,36 @@ function generatePL(Eg, direct, Eb, nMax, excitonType, T) {
       // 🔥 Physically correct PL: continuum emission near Eg (no artificial spike)
       // Boltzmann tail above Eg (carriers recombine near band edge)
       let bandPL = 0;
+      const Eph = 0.035; // phonon energy
+
       if (direct) {
+        // ✅ strong radiative recombination
         if (E >= Eg) {
-          bandPL = Math.sqrt(E - Eg) * safeExp(-(E - Eg) / (kB * clampT(T)));
+          bandPL = 1.0 * Math.sqrt(E - Eg) * safeExp(-(E - Eg) / (kB * clampT(T)));
         }
       } else {
-        if (E >= Eg) {
-          bandPL = 0.1 * Math.pow(E - Eg, 2) * safeExp(-(E - Eg) / (kB * clampT(T)));
+        // 🔥 phonon-assisted PL: weaker + shifted + thermally activated
+        // 🔥 realistic but visible phonon activation
+        // avoid complete suppression at low T (didactic)
+        const phononFactor = 0.1 + 0.9 * safeExp(-Eph / (kB * clampT(T))); // need phonon
+        if (E >= Eg - Eph) {
+          bandPL = 0.15 * phononFactor * Math.pow(E - (Eg - Eph), 2) * safeExp(-(E - (Eg - Eph)) / (kB * clampT(T)));
         }
       }
 
-      // spectral weight transfer (reduce band when exciton strong)
-      bandPL *= (1 - Sw);
+      bandPL *= 1.0;
 
       // 🔥 PHYSICALLY CONSISTENT Saha model (scaled)
     // use dimensionless version to avoid unphysical T^3 blow-up
-    const saha = safeExp(-Eb / (kB * clampT(T)));
+    // 🔥 improved Saha (include phase-space factor ~ T^(3/2))
+    const saha = Math.pow(clampT(T), 1.5) * safeExp(-Eb / (kB * clampT(T)));
     const f_bound = 1 / (1 + saha);
     const merge = f_bound;
 
       // 🔥 avoid double counting: exciton weight redistributes into continuum
-      const excitonWeight = Sw * merge;
+      // ✅ PHYSICALLY CONSISTENT PL:
+      // excitons dominate at low T, continuum grows with T
+      const excitonWeight = merge; // controlled by Saha only
       const continuumWeight = 1 - excitonWeight;
 
       const excitonTotal = excitonWeight * (excitonPL + rydberg);
@@ -765,5 +789,6 @@ export default function App() {
       )}      </div>
   );
 }
+
 
 
