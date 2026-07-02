@@ -484,10 +484,10 @@ export default function App() {
 
       <div className="w-full h-[300px] bg-black rounded-xl p-2">
       <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={dos}>
+          <LineChart data={dos}>
             <CartesianGrid stroke="#444" />
             <XAxis dataKey="E" tick={{ fill: '#aaa', fontSize: 12 }} label={{ value: "Energy (eV)", position: "insideBottomRight", offset: -5, fill: '#aaa' }} />
-            <YAxis domain={[0, 'auto']} width={60} tick={{ fill: '#aaa', fontSize: 12 }} label={{ value: "Intensity", angle: -90, position: "insideLeft", fill: '#aaa' }} />
+            <YAxis domain={["auto","auto"]} width={60} tick={{ fill: '#aaa', fontSize: 12 }} label={{ value: "Intensity", angle: -90, position: "insideLeft", fill: '#aaa' }} />
             <Tooltip formatter={(v) => (v != null ? Number(v).toExponential(2) : "0")} />
             <Legend />
 
@@ -498,7 +498,7 @@ export default function App() {
             <Line dataKey="Dc" name="D_c(E)" dot={false} stroke="#00ffcc" strokeWidth={2} />
             <Line dataKey="Dv" name="D_v(E)" dot={false} stroke="#00ccff" strokeWidth={2} />
             <Line dataKey="f" name="f(E)" dot={false} stroke="#ffcc00" strokeWidth={2} strokeDasharray="5 5" />
-          </AreaChart>
+          </LineChart>
       </ResponsiveContainer>
       </div>
 
@@ -759,3 +759,4 @@ export default function App() {
       )}      </div>
   );
 }
+
