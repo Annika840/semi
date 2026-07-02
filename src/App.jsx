@@ -498,8 +498,6 @@ export default function App() {
             <Line dataKey="Dc" name="D_c(E)" dot={false} stroke="#00ffcc" strokeWidth={2} />
             <Line dataKey="Dv" name="D_v(E)" dot={false} stroke="#00ccff" strokeWidth={2} />
             <Line dataKey="f" name="f(E)" dot={false} stroke="#ffcc00" strokeWidth={2} strokeDasharray="5 5" />
-            <Area dataKey="n" name="electrons" fill="#ff4d4d" stroke="#ff4d4d" fillOpacity={0.4} />
-            <Area dataKey="p" name="holes" fill="#4da6ff" stroke="#4da6ff" fillOpacity={0.4} />
           </AreaChart>
       </ResponsiveContainer>
       </div>
