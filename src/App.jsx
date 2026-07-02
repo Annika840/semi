@@ -259,7 +259,13 @@ export default function App() {
     return 0.5 * (left + right);
   }
 
-  const Ef = useMemo(() => (autoEf ? solveEf() : EfUser), [autoEf, EfUser, Eg, temp, me, mh]);
+  // 🔥 FIX: use analytic intrinsic Fermi level (stable, physical)
+  const Ef = useMemo(() => {
+    if (!autoEf) return EfUser;
+    // Ec = +Eg/2, Ev = -Eg/2 → midpoint = 0 in our convention
+    const shift = (3/4) * kB * clampT(temp) * Math.log(mh / me);
+    return shift; // intrinsic EF relative to mid-gap
+  }, [autoEf, EfUser, Eg, temp, me, mh]);
   const dosRaw = useMemo(() => generateDOS(Eg, Ef, temp, me, mh), [Eg, Ef, temp, me, mh]);
 
   // 🔥 FIX: normalize DOS for visualization (prevents carriers from dominating plot)
@@ -759,4 +765,5 @@ export default function App() {
       )}      </div>
   );
 }
+
 
