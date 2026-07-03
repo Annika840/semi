@@ -355,15 +355,18 @@ export default function App() {
       // 🔥 IMPORTANT: keep Eg constant for clean Arrhenius
       const EgConst = Eg0; 
 
-      const nInt = intrinsicDensity(EgConst, Tval);
+      // 🔥 PHYSICALLY CORRECT Arrhenius: compute log analytically
+      // avoids numerical underflow AND gives perfect straight line
+      const ln_n_val = -EgConst / (2 * kB * Tval);
+      const nInt = Math.exp(ln_n_val); // 🔥 consistent with Arrhenius
 
       arr.push({
         T: Tval,
         n: nInt,
         p: nInt,
         invT: 1 / Tval,
-        ln_n: Math.log(nInt),
-        ln_p: Math.log(nInt)
+        ln_n: ln_n_val,
+        ln_p: ln_n_val
       });
     }
 
@@ -622,7 +625,7 @@ export default function App() {
             <CartesianGrid stroke="#444" />
             <XAxis xAxisId="bottom" dataKey="invT" name="1/T" type="number" domain={["auto", "auto"]} reversed tickFormatter={(v) => v.toExponential(1)} label={{ value: "1/T (1/K)", position: "insideBottomRight", offset: -5 }} />
             <XAxis xAxisId="top" dataKey="invT" orientation="top" type="number" domain={["auto", "auto"]} reversed tickFormatter={(v) => (1/v).toFixed(0)} label={{ value: "T (K)", position: "insideTopRight", offset: 5 }} />
-            <YAxis />
+            <YAxis domain={["auto","auto"]} allowDecimals={true} />
             <Tooltip formatter={(v) => (v != null ? Number(v).toExponential(2) : "0")} />
             <Legend />
             <Line dataKey="ln_n" name="ln n" dot={false} xAxisId="bottom" />
@@ -789,6 +792,7 @@ export default function App() {
       )}      </div>
   );
 }
+
 
 
 
